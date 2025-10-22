@@ -20,10 +20,26 @@ class WebRTCService {
   }
 
   Future<void> startCall({bool isCaller = true}) async {
+    // Allow injecting TURN servers at build time via --dart-define
+    const turnUrlsRaw = String.fromEnvironment('TURN_URLS', defaultValue: ''); // comma-separated, e.g. turn:host:3478,turns:host:5349
+    const turnUser = String.fromEnvironment('TURN_USERNAME', defaultValue: '');
+    const turnCred = String.fromEnvironment('TURN_CREDENTIAL', defaultValue: '');
+
+    final List<Map<String, dynamic>> iceServers = [
+      {'urls': 'stun:stun.l.google.com:19302'},
+    ];
+    if (turnUrlsRaw.isNotEmpty) {
+      final urls = turnUrlsRaw.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      if (urls.isNotEmpty) {
+        final m = <String, dynamic>{'urls': urls};
+        if (turnUser.isNotEmpty) m['username'] = turnUser;
+        if (turnCred.isNotEmpty) m['credential'] = turnCred;
+        iceServers.add(m);
+      }
+    }
+
     final config = {
-      'iceServers': [
-        {'urls': 'stun:stun.l.google.com:19302'},
-      ]
+      'iceServers': iceServers,
     };
     _pc = await createPeerConnection(config);
 
