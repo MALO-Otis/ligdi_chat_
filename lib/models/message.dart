@@ -1,4 +1,4 @@
-enum MessageType { text, audio, video }
+enum MessageType { text, audio, video, file }
 
 MessageType parseMessageType(String s) {
   switch (s.toUpperCase()) {
@@ -6,6 +6,8 @@ MessageType parseMessageType(String s) {
       return MessageType.audio;
     case 'VIDEO':
       return MessageType.video;
+    case 'FILE':
+      return MessageType.file;
     default:
       return MessageType.text;
   }

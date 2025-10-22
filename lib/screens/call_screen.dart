@@ -7,7 +7,8 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 class CallScreen extends StatefulWidget {
   final IO.Socket socket;
   final String conversationId;
-  const CallScreen({super.key, required this.socket, required this.conversationId});
+  final bool isCaller;
+  const CallScreen({super.key, required this.socket, required this.conversationId, this.isCaller = true});
 
   @override
   State<CallScreen> createState() => _CallScreenState();
@@ -25,7 +26,7 @@ class _CallScreenState extends State<CallScreen> {
 
   Future<void> _start() async {
     await _svc.initRenderers();
-    await _svc.startCall(isCaller: true);
+    await _svc.startCall(isCaller: widget.isCaller);
     if (mounted) setState(() {});
   }
 

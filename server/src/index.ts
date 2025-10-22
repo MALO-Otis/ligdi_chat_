@@ -99,7 +99,15 @@ app.get('/users/me', auth, async (req: AuthRequest, res) => {
 
 app.get('/users/search', auth, async (req: AuthRequest, res) => {
   const q = (req.query.q as string | undefined)?.trim();
-  if (!q) return res.json([]);
+  // If no query provided, return up to 20 users (excluding current) for discovery
+  if (!q) {
+    const users = await prisma.user.findMany({
+      where: { id: { not: req.userId! } },
+      take: 20,
+      orderBy: { username: 'asc' },
+    });
+    return res.json(users);
+  }
   const users = await prisma.user.findMany({
     where: {
       OR: [
@@ -228,6 +236,25 @@ app.post('/upload/video', auth, upload.single('file'), async (req: AuthRequest, 
   }
 });
 
+// Generic file upload (any file). Stores original name in text field, type = 'FILE'
+app.post('/upload/file', auth, upload.single('file'), async (req: AuthRequest, res) => {
+  try {
+    const { conversationId } = req.body as any;
+    if (!req.file) return res.status(400).json({ error: 'file required' });
+    if (!conversationId) return res.status(400).json({ error: 'conversationId required' });
+    const mediaUrl = `/uploads/${req.file.filename}`;
+    const original = req.file.originalname;
+    const message = await prisma.message.create({
+      data: { conversationId, senderId: req.userId!, type: 'FILE', mediaUrl, text: original }
+    });
+    io.to(`conv:${conversationId}`).emit('message:new', message);
+    res.status(201).json(message);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'server_error' });
+  }
+});
+
 // Server & sockets
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: CLIENT_ORIGIN, credentials: true } });
@@ -282,13 +309,13 @@ io.on('connection', (socket) => {
   });
 
   socket.on('webrtc:offer', (data: { conversationId: string; sdp: any }) => {
-    socket.to(`conv:${data.conversationId}`).emit('webrtc:offer', { from: socket.id, sdp: data.sdp });
+    socket.to(`conv:${data.conversationId}`).emit('webrtc:offer', { from: socket.id, conversationId: data.conversationId, sdp: data.sdp });
   });
   socket.on('webrtc:answer', (data: { conversationId: string; sdp: any }) => {
-    socket.to(`conv:${data.conversationId}`).emit('webrtc:answer', { from: socket.id, sdp: data.sdp });
+    socket.to(`conv:${data.conversationId}`).emit('webrtc:answer', { from: socket.id, conversationId: data.conversationId, sdp: data.sdp });
   });
   socket.on('webrtc:ice', (data: { conversationId: string; candidate: any }) => {
-    socket.to(`conv:${data.conversationId}`).emit('webrtc:ice', { from: socket.id, candidate: data.candidate });
+    socket.to(`conv:${data.conversationId}`).emit('webrtc:ice', { from: socket.id, conversationId: data.conversationId, candidate: data.candidate });
   });
 });
 

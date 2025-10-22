@@ -25,8 +25,16 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
+  @override
+  void initState() {
+    super.initState();
+    // Load initial users (up to 20) with empty query
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _search('');
+    });
+  }
+
   Future<void> _search(String q) async {
-    if (q.trim().isEmpty) return;
     setState(() { _loading = true; });
     try {
       final list = await widget.api.searchUsers(q);

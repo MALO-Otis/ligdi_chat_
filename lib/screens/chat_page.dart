@@ -10,6 +10,8 @@ import '../services/audio_service.dart';
 import '../services/socket_service.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class ChatPage extends StatefulWidget {
@@ -45,6 +47,15 @@ class _ChatPageState extends State<ChatPage> {
     socket.connect(conversationId: widget.conversation.id, onNewMessage: (m) {
       setState(() => messages.add(m));
     });
+    // Incoming call: auto-open as callee
+    socket.socket.on('webrtc:offer', (data) {
+      if (!mounted) return;
+      final cid = (data is Map && data['conversationId'] is String) ? data['conversationId'] as String : widget.conversation.id;
+      if (cid != widget.conversation.id) return;
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => CallScreen(socket: socket.socket, conversationId: widget.conversation.id, isCaller: false),
+      ));
+    });
   }
 
   Future<void> _load() async {
@@ -76,9 +87,6 @@ class _ChatPageState extends State<ChatPage> {
   Future<void> _pickVideo() async {
     final me = widget.auth.currentUser;
     if (me == null) return;
-    final cam = await Permission.camera.request();
-    final storage = await Permission.photos.request();
-    if (!cam.isGranted || !storage.isGranted) return;
     final x = await _picker.pickVideo(source: ImageSource.gallery);
     if (x != null) {
       await widget.api.uploadMedia(
@@ -86,6 +94,20 @@ class _ChatPageState extends State<ChatPage> {
         conversationId: widget.conversation.id,
         senderId: me.id,
         filePath: x.path,
+      );
+    }
+  }
+
+  Future<void> _pickFile() async {
+    final me = widget.auth.currentUser;
+    if (me == null) return;
+    final res = await FilePicker.platform.pickFiles(withReadStream: false);
+    if (res != null && res.files.isNotEmpty && res.files.single.path != null) {
+      await widget.api.uploadMedia(
+        endpoint: '/upload/file',
+        conversationId: widget.conversation.id,
+        senderId: me.id,
+        filePath: res.files.single.path!,
       );
     }
   }
@@ -122,7 +144,33 @@ class _ChatPageState extends State<ChatPage> {
           children: [
             const Icon(Icons.videocam, color: AppTheme.brandYellow),
             const SizedBox(width: 8),
-            const Text('Vidéo', style: TextStyle(color: Colors.white70)),
+            TextButton(
+              onPressed: () async {
+                final url = Uri.parse('${widget.api.baseUrl}${m.mediaUrl}');
+                if (await canLaunchUrl(url)) await launchUrl(url, mode: LaunchMode.externalApplication);
+              },
+              child: const Text('Ouvrir', style: TextStyle(color: AppTheme.brandYellow)),
+            ),
+          ],
+        );
+        break;
+      case MessageType.file:
+        child = Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.insert_drive_file, color: AppTheme.brandYellow),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(m.text ?? 'Fichier', style: const TextStyle(color: Colors.white70), overflow: TextOverflow.ellipsis),
+            ),
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: () async {
+                final url = Uri.parse('${widget.api.baseUrl}${m.mediaUrl}');
+                if (await canLaunchUrl(url)) await launchUrl(url, mode: LaunchMode.externalApplication);
+              },
+              child: const Text('Ouvrir', style: TextStyle(color: AppTheme.brandYellow)),
+            ),
           ],
         );
         break;
@@ -221,6 +269,7 @@ class _ChatPageState extends State<ChatPage> {
           child: Icon(_recording ? Icons.stop_circle : Icons.mic, color: _recording ? Colors.redAccent : AppTheme.brandYellow),
         ),
         const SizedBox(width: 8),
+        IconButton(onPressed: _pickFile, icon: const Icon(Icons.attach_file)),
         IconButton(onPressed: _sendText, icon: const Icon(Icons.send)),
       ]),
     );
