@@ -8,6 +8,7 @@ services:
     name: ligdi-chat-server
     env: docker
     dockerfilePath: server/Dockerfile
+    dockerContext: server
     plan: free
     region: oregon
     autoDeploy: true
