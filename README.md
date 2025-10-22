@@ -1,11 +1,11 @@
 # Ligdi Chat
 
-Mini application de messagerie (texte, audio, vidéo) composée de:
+An online chat platform (texte, audio, vidéo) composed of:
 
-- Un backend Node.js (Express + Prisma + Socket.IO)
-- Une app Flutter (Android/iOS/Web/desktop) avec UI de chat, enregistrement audio, upload vidéo et WebRTC basique
+- Backend: Node.js (Express + Prisma + Socket.IO)
+- Frontend: Flutter (Android/iOS/Web/desktop) with chat UI, audio recording, video upload, and basic WebRTC
 
-## Prérequis
+## Prérequis / Prerequisites
 
 - Node.js 18+
 - Flutter 3.24+ (Dart 3.8+)
@@ -55,15 +55,11 @@ Remarque Android:
 - Sécurité CORS affinée, rate limiting
 - Déploiement (Render/Fly.io/railway) + base Postgres/MySQL en prod
 
-## Getting Started
+## Getting Started (Flutter)
 
-This project is a starting point for a Flutter application.
+If you're new to Flutter, see:
 
-A few resources to get you started if this is your first Flutter project:
+- https://docs.flutter.dev/get-started/codelab
+- https://docs.flutter.dev/cookbook
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+For help with Flutter development, view the online documentation.
