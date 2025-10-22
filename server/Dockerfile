@@ -15,8 +15,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/prisma ./prisma
-"# Install all deps (including dev) so Prisma CLI is available at runtime for migrations;\n# prisma schema is already copied so @prisma/client postinstall can generate client"
-RUN npm ci
+"# Install only production deps (prisma is in dependencies), then generate client"
+RUN npm ci --omit=dev
 RUN npx prisma generate
 COPY --from=build /app/dist ./dist
 # uploads directory for media files
