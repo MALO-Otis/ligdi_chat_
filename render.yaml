@@ -1,9 +1,9 @@
-services:
-  - type: postgres
-    name: ligdi-chat-db
+databases:
+  - name: ligdi-chat-db
     plan: free
     region: oregon
 
+services:
   - type: web
     name: ligdi-chat-server
     env: docker
