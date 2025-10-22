@@ -25,5 +25,5 @@ COPY --from=build /app/dist ./dist
 RUN mkdir -p /app/uploads
 ENV PORT=4000
 EXPOSE 4000
-# Apply migrations if present; otherwise push schema (first deploy), then launch
-CMD ["sh", "-c", "npx prisma migrate deploy || npx prisma db push && node dist/index.js"]
+# Apply migrations if present (no-op if none), then ensure schema is in sync, then launch
+CMD ["sh", "-c", "npx prisma migrate deploy || true; npx prisma db push; node dist/index.js"]
