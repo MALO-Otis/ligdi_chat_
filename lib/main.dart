@@ -14,7 +14,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const apiBase = 'http://localhost:4000';
+    // Read API base from compile-time define for release builds; falls back to localhost
+    const apiBase = String.fromEnvironment('API_BASE', defaultValue: 'http://localhost:4000');
     final api = ApiClient(baseUrl: apiBase);
     final auth = AuthService(api);
     return FutureBuilder(
