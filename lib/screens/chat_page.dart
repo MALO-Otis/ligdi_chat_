@@ -8,9 +8,9 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/audio_service.dart';
 import '../services/socket_service.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -81,7 +81,14 @@ class _ChatPageState extends State<ChatPage> {
     final txt = _textCtrl.text.trim();
     if (txt.isEmpty) return;
     _textCtrl.clear();
-    await widget.api.sendTextMessage(conversationId: widget.conversation.id, senderId: me.id, text: txt);
+    try {
+      final res = await widget.api.sendTextMessage(conversationId: widget.conversation.id, senderId: me.id, text: txt);
+      // Optimistic UI: append immediately using server response
+      setState(() => messages.add(ChatMessage.fromJson(Map<String, dynamic>.from(res))));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Envoi échoué: $e')));
+    }
   }
 
   Future<void> _pickVideo() async {
@@ -89,12 +96,18 @@ class _ChatPageState extends State<ChatPage> {
     if (me == null) return;
     final x = await _picker.pickVideo(source: ImageSource.gallery);
     if (x != null) {
-      await widget.api.uploadMedia(
-        endpoint: '/upload/video',
-        conversationId: widget.conversation.id,
-        senderId: me.id,
-        filePath: x.path,
-      );
+      try {
+        final res = await widget.api.uploadMedia(
+          endpoint: '/upload/video',
+          conversationId: widget.conversation.id,
+          senderId: me.id,
+          filePath: x.path,
+        );
+        setState(() => messages.add(ChatMessage.fromJson(Map<String, dynamic>.from(res))));
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload vidéo échoué: $e')));
+      }
     }
   }
 
@@ -103,12 +116,18 @@ class _ChatPageState extends State<ChatPage> {
     if (me == null) return;
     final res = await FilePicker.platform.pickFiles(withReadStream: false);
     if (res != null && res.files.isNotEmpty && res.files.single.path != null) {
-      await widget.api.uploadMedia(
-        endpoint: '/upload/file',
-        conversationId: widget.conversation.id,
-        senderId: me.id,
-        filePath: res.files.single.path!,
-      );
+      try {
+        final r = await widget.api.uploadMedia(
+          endpoint: '/upload/file',
+          conversationId: widget.conversation.id,
+          senderId: me.id,
+          filePath: res.files.single.path!,
+        );
+        setState(() => messages.add(ChatMessage.fromJson(Map<String, dynamic>.from(r))));
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload fichier échoué: $e')));
+      }
     }
   }
 
@@ -258,12 +277,18 @@ class _ChatPageState extends State<ChatPage> {
             final path = await _audio.stop();
             setState(() => _recording = false);
             if (path != null) {
-              await widget.api.uploadMedia(
-                endpoint: '/upload/audio',
-                conversationId: widget.conversation.id,
-                senderId: me.id,
-                filePath: path,
-              );
+              try {
+                final res = await widget.api.uploadMedia(
+                  endpoint: '/upload/audio',
+                  conversationId: widget.conversation.id,
+                  senderId: me.id,
+                  filePath: path,
+                );
+                setState(() => messages.add(ChatMessage.fromJson(Map<String, dynamic>.from(res))));
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload audio échoué: $e')));
+              }
             }
           },
           child: Icon(_recording ? Icons.stop_circle : Icons.mic, color: _recording ? Colors.redAccent : AppTheme.brandYellow),
