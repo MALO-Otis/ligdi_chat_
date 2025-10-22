@@ -4,14 +4,16 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 class SocketService {
   final String baseUrl; // e.g., http://localhost:4000
   late IO.Socket socket;
+  final String? token;
 
-  SocketService({required this.baseUrl});
+  SocketService({required this.baseUrl, this.token});
 
   void connect({required String conversationId, required void Function(ChatMessage msg) onNewMessage}) {
-    socket = IO.io(baseUrl, IO.OptionBuilder()
-        .setTransports(['websocket'])
-        .disableAutoConnect()
-        .build());
+    final builder = IO.OptionBuilder().setTransports(['websocket']).disableAutoConnect();
+    if (token != null && token!.isNotEmpty) {
+      builder.setQuery({'token': token});
+    }
+    socket = IO.io(baseUrl, builder.build());
     socket.connect();
     socket.onConnect((_) {
       socket.emit('join', conversationId);

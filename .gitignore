@@ -1,4 +1,60 @@
-# Miscellaneous
+# Flutter/Dart
+.dart_tool/
+.packages
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.metadata
+
+# VS Code
+.vscode/
+
+# Android
+android/.gradle/
+android/app/build/
+android/local.properties
+
+# iOS
+ios/Flutter/Flutter.podspec
+ios/Flutter/ephemeral/
+ios/.symlinks/
+ios/Pods/
+
+# macOS
+macos/Flutter/ephemeral/
+macos/Pods/
+
+# Linux/Windows (generated build artifacts)
+linux/flutter/ephemeral/
+windows/flutter/ephemeral/
+
+# Web (build output)
+web/.dart_tool/
+web/build/
+
+# Server (Node/TypeScript)
+server/node_modules/
+server/.env
+server/.env.*
+server/uploads/
+server/dist/
+server/.turbo/
+
+# Prisma local databases (keep migrations and schema)
+server/prisma/*.db
+server/prisma/*.db-journal
+server/prisma/*.sqlite
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db# Miscellaneous
 *.class
 *.log
 *.pyc
