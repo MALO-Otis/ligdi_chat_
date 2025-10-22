@@ -14,11 +14,13 @@ FROM node:20-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/package*.json ./
-RUN npm ci --omit=dev
+"# Install all deps (including dev) so Prisma CLI is available at runtime for migrations"
+RUN npm ci
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/dist ./dist
 # uploads directory for media files
 RUN mkdir -p /app/uploads
 ENV PORT=4000
 EXPOSE 4000
-CMD ["node", "dist/index.js"]
+"# Run database migrations on container start, then launch the server"
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
