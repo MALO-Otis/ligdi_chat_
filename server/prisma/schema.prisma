@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  createdAt DateTime @default(now())
+  messages  Message[]
+  members   ConversationMember[]
+}
+
+model Conversation {
+  id         String                 @id @default(cuid())
+  isGroup    Boolean                @default(false)
+  createdAt  DateTime               @default(now())
+  messages   Message[]
+  members    ConversationMember[]
+}
+
+model ConversationMember {
+  id             String        @id @default(cuid())
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  conversation   Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+  joinedAt       DateTime      @default(now())
+
+  @@unique([userId, conversationId])
+}
+
+
+model Message {
+  id             String        @id @default(cuid())
+  conversation   Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+  sender         User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  senderId       String
+  type           String        @default("TEXT") // TEXT | AUDIO | VIDEO
+  text           String?
+  mediaUrl       String?
+  durationMs     Int?
+  createdAt      DateTime      @default(now())
+
+  @@index([conversationId, createdAt])
+}
