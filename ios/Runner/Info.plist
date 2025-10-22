@@ -45,5 +45,12 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Permissions for camera/microphone/photo library -->
+	<key>NSCameraUsageDescription</key>
+	<string>Cette application utilise la caméra pour les appels vidéo.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Cette application utilise le microphone pour les messages audio et les appels.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Cette application accède à votre galerie pour envoyer des vidéos.</string>
 </dict>
 </plist>
