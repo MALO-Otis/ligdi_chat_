@@ -14,9 +14,10 @@ FROM node:20-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/package*.json ./
-"# Install all deps (including dev) so Prisma CLI is available at runtime for migrations"
-RUN npm ci
 COPY --from=build /app/prisma ./prisma
+"# Install all deps (including dev) so Prisma CLI is available at runtime for migrations;\n# prisma schema is already copied so @prisma/client postinstall can generate client"
+RUN npm ci
+RUN npx prisma generate
 COPY --from=build /app/dist ./dist
 # uploads directory for media files
 RUN mkdir -p /app/uploads
