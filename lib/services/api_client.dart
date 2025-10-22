@@ -27,6 +27,16 @@ class ApiClient {
     throw HttpException('Failed to create conversation: ${res.statusCode}');
   }
 
+  Future<Map<String, dynamic>> findOrCreateConversation(List<String> memberIds) async {
+    final res = await http.post(Uri.parse('$baseUrl/conversations/find-or-create'),
+        headers: {HttpHeaders.contentTypeHeader: 'application/json'},
+        body: jsonEncode({'memberIds': memberIds}));
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    }
+    throw HttpException('Failed to find-or-create conversation: ${res.statusCode}');
+  }
+
   Future<List<dynamic>> getMessages(String conversationId) async {
     final res = await http.get(Uri.parse('$baseUrl/conversations/$conversationId/messages'));
     if (res.statusCode == 200) {

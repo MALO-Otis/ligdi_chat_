@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
+// ignore_for_file: unused_import
 
 class AudioService {
   final AudioRecorder _rec = AudioRecorder();

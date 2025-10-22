@@ -2,6 +2,7 @@ import 'dart:io';
 import 'call_screen.dart';
 import '../models/user.dart';
 import '../models/message.dart';
+import '../theme/app_theme.dart';
 import '../models/conversation.dart';
 import '../services/api_client.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ import '../services/socket_service.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+// ignore_for_file: unused_import
 
 
 
@@ -69,8 +71,8 @@ class _ChatScreenState extends State<ChatScreen> {
       final peerJson = await api.createUser(peerName);
       me = AppUser.fromJson(meJson);
       peer = AppUser.fromJson(peerJson);
-      // Create conversation
-      final convJson = await api.createConversation([me!.id, peer!.id]);
+  // Find or create conversation 1:1
+  final convJson = await api.findOrCreateConversation([me!.id, peer!.id]);
       conv = Conversation.fromJson(convJson);
       // Load messages
       final list = await api.getMessages(conv!.id);
@@ -99,26 +101,8 @@ class _ChatScreenState extends State<ChatScreen> {
     await api.sendTextMessage(conversationId: conv!.id, senderId: me!.id, text: txt);
   }
 
-  Future<void> _toggleRecord() async {
-    if (me == null || conv == null) return;
-    if (!_recording) {
-      final mic = await Permission.microphone.request();
-      if (!mic.isGranted) return;
-      await _audio.start();
-      setState(() => _recording = true);
-    } else {
-      final path = await _audio.stop();
-      setState(() => _recording = false);
-      if (path != null) {
-        await api.uploadMedia(
-          endpoint: '/upload/audio',
-          conversationId: conv!.id,
-          senderId: me!.id,
-          filePath: path,
-        );
-      }
-    }
-  }
+  // Toggle record kept for reference (not used since we use long-press)
+  // Removed: long-press mic is used instead of toggle
 
   Future<void> _pickVideo() async {
     if (me == null || conv == null) return;
@@ -146,24 +130,24 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _bubble(ChatMessage m) {
     final isMe = m.senderId == me?.id;
     final align = isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start;
-    final color = isMe ? Colors.blue[200] : Colors.grey[300];
+    final color = isMe ? context.bubbleMe : context.bubbleOther;
     Widget child;
     switch (m.type) {
       case MessageType.text:
-        child = Text(m.text ?? '', style: const TextStyle(fontSize: 16));
+  child = Text(m.text ?? '', style: const TextStyle(fontSize: 16, color: Colors.white));
         break;
       case MessageType.audio:
         child = Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.audiotrack),
+            const Icon(Icons.audiotrack, color: AppTheme.brandYellow),
             const SizedBox(width: 8),
             TextButton(
               onPressed: () {
                 final url = '${widget.apiBase}${m.mediaUrl}';
                 _player.play(UrlSource(url));
               },
-              child: const Text('Play audio'),
+              child: const Text('Lire', style: TextStyle(color: AppTheme.brandYellow)),
             ),
           ],
         );
@@ -172,9 +156,9 @@ class _ChatScreenState extends State<ChatScreen> {
         child = Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.videocam),
+            const Icon(Icons.videocam, color: AppTheme.brandYellow),
             const SizedBox(width: 8),
-            Text(m.mediaUrl ?? ''),
+            Text('Vidéo', style: const TextStyle(color: Colors.white70)),
           ],
         );
         break;
@@ -185,7 +169,7 @@ class _ChatScreenState extends State<ChatScreen> {
         Container(
           margin: const EdgeInsets.symmetric(vertical: 4),
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(14)),
           child: child,
         ),
       ],
@@ -195,52 +179,63 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Ligdi Chat')),
+      appBar: AppBar(
+        title: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/images/logo.png',
+                width: 28,
+                height: 28,
+                errorBuilder: (_, __, ___) => const Icon(Icons.bolt, color: AppTheme.brandYellow),
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Text('Ligdi Chat'),
+          ],
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Column(
           children: [
-            Row(children: [
-              Expanded(
-                child: TextField(
-                  controller: _apiPicker,
-                  decoration: const InputDecoration(labelText: 'API Base (ex: http://10.0.2.2:4000)'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: () {
-                  api = ApiClient(baseUrl: _apiPicker.text.trim());
-                  setState(() {});
-                },
-                child: const Text('Set API'),
-              )
-            ]),
-            const SizedBox(height: 8),
-            Row(children: [
-              Expanded(child: TextField(controller: _meCtrl, decoration: const InputDecoration(labelText: 'Mon pseudo'))),
-              const SizedBox(width: 8),
-              Expanded(child: TextField(controller: _peerCtrl, decoration: const InputDecoration(labelText: 'Contact pseudo'))),
-              const SizedBox(width: 8),
-              ElevatedButton(onPressed: _startChat, child: const Text('Démarrer')),
-            ]),
-            const Divider(),
-            if (conv != null)
-              Row(
-                children: [
-                  IconButton(onPressed: _openCall, icon: const Icon(Icons.video_call)),
-                  IconButton(onPressed: _pickVideo, icon: const Icon(Icons.attach_file)),
-                  IconButton(onPressed: _toggleRecord, icon: Icon(_recording ? Icons.stop : Icons.mic)),
-                  Expanded(
-                    child: TextField(
-                      controller: _textCtrl,
-                      decoration: const InputDecoration(hintText: 'Message...'),
-                      onSubmitted: (_) => _sendText(),
+            Card(
+              color: Theme.of(context).cardColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(children: [
+                  Row(children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _apiPicker,
+                        decoration: const InputDecoration(labelText: 'API Base (ex: http://10.0.2.2:4000)'),
+                      ),
                     ),
-                  ),
-                  IconButton(onPressed: _sendText, icon: const Icon(Icons.send)),
-                ],
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        api = ApiClient(baseUrl: _apiPicker.text.trim());
+                        setState(() {});
+                      },
+                      child: const Text('Set API'),
+                    )
+                  ]),
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    Expanded(child: TextField(controller: _meCtrl, decoration: const InputDecoration(labelText: 'Mon pseudo'))),
+                    const SizedBox(width: 8),
+                    Expanded(child: TextField(controller: _peerCtrl, decoration: const InputDecoration(labelText: 'Contact pseudo'))),
+                    const SizedBox(width: 8),
+                    ElevatedButton(onPressed: _startChat, child: const Text('Démarrer')),
+                  ]),
+                ]),
               ),
+            ),
+            const SizedBox(height: 8),
+            if (conv != null)
+              _inputBar(),
             const SizedBox(height: 8),
             Expanded(
               child: ListView.builder(
@@ -252,5 +247,50 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
       ),
     );
+  }
+
+  Widget _inputBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+    child: Row(children: [
+      IconButton(onPressed: _openCall, icon: const Icon(Icons.video_call)),
+      IconButton(onPressed: _pickVideo, icon: const Icon(Icons.attach_file)),
+      Expanded(
+        child: TextField(
+          controller: _textCtrl,
+          decoration: const InputDecoration(hintText: 'Message...'),
+          onSubmitted: (_) => _sendText(),
+        ),
+      ),
+      GestureDetector(
+        onLongPress: () async {
+          if (me == null || conv == null) return;
+          final mic = await Permission.microphone.request();
+          if (!mic.isGranted) return;
+          await _audio.start();
+          setState(() => _recording = true);
+        },
+        onLongPressUp: () async {
+          if (!_recording) return;
+          final path = await _audio.stop();
+          setState(() => _recording = false);
+          if (path != null && me != null && conv != null) {
+            await api.uploadMedia(
+              endpoint: '/upload/audio',
+              conversationId: conv!.id,
+              senderId: me!.id,
+              filePath: path,
+            );
+          }
+        },
+        child: Icon(_recording ? Icons.stop_circle : Icons.mic, color: _recording ? Colors.redAccent : AppTheme.brandYellow),
+      ),
+      const SizedBox(width: 8),
+      IconButton(onPressed: _sendText, icon: const Icon(Icons.send)),
+    ]));
   }
 }

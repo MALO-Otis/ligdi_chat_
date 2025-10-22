@@ -22,6 +22,13 @@ if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 // Static serve uploads
 app.use('/uploads', express.static(uploadsDir));
 
+// Root info
+app.get('/', (_req, res) => {
+  res.send(
+    'Ligdi Chat API running. Try GET /health, POST /users, POST /conversations, GET /conversations/:id/messages, POST /upload/audio, POST /upload/video.'
+  );
+});
+
 // Multer storage
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadsDir),
@@ -68,6 +75,36 @@ app.post('/conversations', async (req, res) => {
       },
       include: { members: true }
     });
+    res.json(conversation);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'server_error' });
+  }
+});
+
+// Find or create 1:1 conversation for memberIds[0] and memberIds[1]
+app.post('/conversations/find-or-create', async (req, res) => {
+  try {
+    const { memberIds } = req.body as { memberIds?: string[] };
+    if (!memberIds || memberIds.length < 2) return res.status(400).json({ error: 'memberIds (>=2) required' });
+    const a = memberIds[0];
+    const b = memberIds[1];
+    let conversation = await prisma.conversation.findFirst({
+      where: {
+        isGroup: false,
+        AND: [
+          { members: { some: { userId: a } } },
+          { members: { some: { userId: b } } },
+        ],
+      },
+      include: { members: true },
+    });
+    if (!conversation) {
+      conversation = await prisma.conversation.create({
+        data: { isGroup: false, members: { create: [{ userId: a }, { userId: b }] } },
+        include: { members: true },
+      });
+    }
     res.json(conversation);
   } catch (e) {
     console.error(e);

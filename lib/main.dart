@@ -1,3 +1,4 @@
+import 'theme/app_theme.dart';
 import 'screens/chat_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -12,7 +13,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Ligdi Chat',
-      theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple)),
+      theme: AppTheme.theme(),
       home: const ChatScreen(apiBase: 'http://localhost:4000'),
       debugShowCheckedModeBanner: false,
     );
