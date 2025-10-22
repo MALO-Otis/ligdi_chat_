@@ -23,5 +23,5 @@ COPY --from=build /app/dist ./dist
 RUN mkdir -p /app/uploads
 ENV PORT=4000
 EXPOSE 4000
-# Run database migrations on container start, then launch the server
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+# Apply migrations if present; otherwise push schema (first deploy), then launch
+CMD ["sh", "-c", "npx prisma migrate deploy || npx prisma db push && node dist/index.js"]
