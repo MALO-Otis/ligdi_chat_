@@ -15,7 +15,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/prisma ./prisma
-"# Install only production deps (prisma is in dependencies), then generate client"
+# Install only production deps (prisma is in dependencies), then generate client
 RUN npm ci --omit=dev
 RUN npx prisma generate
 COPY --from=build /app/dist ./dist
@@ -23,5 +23,5 @@ COPY --from=build /app/dist ./dist
 RUN mkdir -p /app/uploads
 ENV PORT=4000
 EXPOSE 4000
-"# Run database migrations on container start, then launch the server"
+# Run database migrations on container start, then launch the server
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
